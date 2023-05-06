@@ -155,8 +155,8 @@ print(f"Total Balance In Usd:", totalBalanceInUsd)
 coinPositionlist = []
 # Parcourir chaque coin dans le dictionnaire balanceInUsdPerCoin_dict
 for coin in balanceInUsdPerCoin_dict:
-    # Vérifiez si la valeur du coin est supérieure à 0.05 * totalBalanceInUsd
-    if balanceInUsdPerCoin_dict[coin] > 0.05 * totalBalanceInUsd:
+    # Vérifiez si la valeur du coin est supérieure à 0.10 * totalBalanceInUsd
+    if balanceInUsdPerCoin_dict[coin] > 0.10 * totalBalanceInUsd:
         # Ajoutez le coin à la liste coinPositionlist
         coinPositionlist.append(coin)
 # Calculer le nombre de positions ouvertes en comptant le nombre d'éléments dans coinPositionlist
@@ -171,14 +171,13 @@ for coin in coinPositionlist:
         openPositions -= 1
         # Définir le symbole de la paire de trading
         symbol = coin+'/USDT'
-        # Annuler les ordres en attente pour la paire de trading
-        cancel = bitget.cancel_order_by_id(symbol)
         time.sleep(1)
         # Obtenir le prix de vente en tant que précision flottante
         sellPrice = float(bitget.convert_price_to_precision(
             symbol, bitget.get_bid_ask_price(symbol)['ask']))
+        coinBalance = bitget.get_balance_of_one_coin(coin)
         # Effectuer une vente de marché pour la quantité de crypto-monnaie possédée
-        sell = bitget.place_market_order(symbol, 'sell', coinBalance[coin])
+        sell = bitget.place_market_order(symbol, 'sell', coinBalance)
         # Afficher un message indiquant que la vente a été effectuée
         print(f"Vente")
         # Ajouter un message à la liste des messages avec les détails de la vente
@@ -238,9 +237,12 @@ if openPositions < maxOpenPosition:
 message_list.append(MESSAGE_TEMPLATE['message_wallet'].format(
     subAccountName, str(usdBalance)))
 
-intents = discord.Intents.default()  # Crée un objet Intents avec les intentions par défaut
-intents.typing = False  # Optionnel : désactive l'intention de voir lorsque quelqu'un tape un message
-intents.presences = False  # Optionnel : désactive l'intention de voir les présences des utilisateurs
+# Crée un objet Intents avec les intentions par défaut
+intents = discord.Intents.default()
+# Optionnel : désactive l'intention de voir lorsque quelqu'un tape un message
+intents.typing = False
+# Optionnel : désactive l'intention de voir les présences des utilisateurs
+intents.presences = False
 TOKEN = secret["discord_exemple"]["token"]
 client = discord.Client(intents=intents)
 
