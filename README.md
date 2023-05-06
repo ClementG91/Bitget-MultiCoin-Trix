@@ -4,7 +4,7 @@
 
 1. Download this repository or clone it
 ```
-git clone https://github.com/ClementG91/Big_will_bitrekt.git
+git clone https://github.com/ClementG91/Bitget-MultiCoin-Trix.git
 ```
 
 2. Use virtual environment
