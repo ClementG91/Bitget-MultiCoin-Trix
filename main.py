@@ -207,7 +207,7 @@ if openPositions < maxOpenPosition:
                 tpPrice = float(bitget.convert_price_to_precision(
                     symbol, buyPrice + TpPct * buyPrice))
                 # Calculer la quantité d'achat en USD en fonction du solde en USD et du nombre maximum de positions ouvertes
-                buyQuantityInUsd = usdBalance * 1 / \
+                buyQuantityInUsd = bitget.get_balance_of_one_coin('USDT') * 1 / \
                     (maxOpenPosition-openPositions)
 
                 # Réduire la quantité d'achat de 5% si c'est la dernière position à ouvrir
