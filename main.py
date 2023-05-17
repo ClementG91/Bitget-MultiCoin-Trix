@@ -1,23 +1,23 @@
-# Importation des modules
 import json
 import time
 from datetime import datetime
 import discord
 import ta
 from spot_bitget import SpotBitget
-# Affichage de l'heure de début d'exécution
+
+# Displaying the start time of execution
 now = datetime.now()
 current_time = now.strftime("%d/%m/%Y %H:%M:%S")
-print("--- Start Execution Time :", current_time, "---")
+print("--- Start Execution Time:", current_time, "---")
 
-# Lecture des informations d'authentification à partir d'un fichier JSON
+# Reading authentication information from a JSON file
 f = open(
     "./secret.json",
 )
 secret = json.load(f)
 f.close()
 
-# Sélection du compte et paramétrage de la connexion API
+# Selecting the account and configuring the API connection
 account_to_select = "bitget_exemple"
 production = False
 
@@ -27,7 +27,7 @@ bitget = SpotBitget(
     password=secret[account_to_select]["password"],
 )
 
-# Liste des paires de trading à surveiller
+# List of trading pairs to monitor
 pairlist = [
     "BTC/USDT:USDT",
     "ETH/USDT:USDT",
@@ -43,45 +43,45 @@ pairlist = [
 
 subAccountName = 'EBot'
 MESSAGE_TEMPLATE = {
-    "message_sell": "{} : Vente {} à {} ",
-    "message_keep": "{} : Conserver {} ",
-    "message_buy": "{} : Achat de {} {} à {} USDT ",
-    "message_wallet": "{} : {} USDT ",
-    "message_erreur": "{} : Impossible de récupérer les {} dernières bougies de {}.",
-    "message_attente": "{} : Aucun Trade en cours ou à prendre."
+    "message_sell": "{}: Sell {} at {}",
+    "message_keep": "{}: Keep {}",
+    "message_buy": "{}: Buy {} {} at {} USDT",
+    "message_wallet": "{}: {} USDT",
+    "message_erreur": "{}: Unable to retrieve the last {} candles of {}.",
+    "message_attente": "{}: No ongoing or potential trades."
 }
 message_list = []
 
-# Période de temps à utiliser pour l'analyse technique
+# Timeframe to use for technical analysis
 timeframe = "1h"
-# Affichage des paramètres utilisés
+# Displaying the used parameters
 print(f"--- {pairlist} {timeframe} ---")
 
-# Chargement des données historiques pour chaque paire de trading dans la liste
+# Loading historical data for each trading pair in the list
 dflist = {}
 nbOfCandles = 210
-ratio = [int((nbOfCandles*(100/(i+1)))/100)for i in range(0, 3)]
+ratio = [int((nbOfCandles*(100/(i+1)))/100) for i in range(0, 3)]
 idex = 0
 
 for pair in pairlist:
-    # Tentative de récupération des données historiques pour la paire courante
+    # Attempting to retrieve historical data for the current pair
     request_success = False
-    while (request_success == False):
+    while request_success == False:
         try:
             df = bitget.get_more_last_historical_async(pair, timeframe, 1000)
             dflist[pair.replace('/USDT:USDT', '')] = df
             request_success = True
         except Exception as err:
-            # En cas d'erreur lors de la tentative de récupération des données, afficher un message d'erreur et réessayer
-            print(f"Erreur, détails : {err}")
+            # If an error occurs while retrieving data, display an error message and retry
+            print(f"Error, details: {err}")
             message_list.append(MESSAGE_TEMPLATE['message_erreur'].format(
                 subAccountName, nbOfCandles, pair))
 
-# -- Variables pour les indicateurs --
+# -- Variables for indicators --
 trixLength = 9
 trixSignal = 21
 
-# -- Parametre --
+# -- Parameters --
 maxOpenPosition = 2
 stochOverBought = 0.80
 stochOverSold = 0.20
@@ -94,7 +94,7 @@ for coin in dflist:
 
     dflist[coin]['TRIX'] = ta.trend.ema_indicator(ta.trend.ema_indicator(ta.trend.ema_indicator(
         close=dflist[coin]['close'], window=trixLength), window=trixLength), window=trixLength)
-    dflist[coin]['TRIX_PCT'] = dflist[coin]["TRIX"].pct_change()*100
+    dflist[coin]['TRIX_PCT'] = dflist[coin]["TRIX"].pct_change() * 100
     dflist[coin]['TRIX_SIGNAL'] = ta.trend.sma_indicator(
         dflist[coin]['TRIX_PCT'], trixSignal)
     dflist[coin]['TRIX_HISTO'] = dflist[coin]['TRIX_PCT'] - \
@@ -129,119 +129,119 @@ def sellCondition(row, previousRow=None):
 
 
 usdBalance = bitget.get_balance_of_one_coin('USDT')
-# Dictionnaire pour stocker le solde en USD par coin
+# Dictionary to store the USD balance per coin
 balanceInUsdPerCoin_dict = {}
-# Parcourir chaque coin dans dflist
+# Iterate over each coin in dflist
 for coin in dflist:
     symbol = coin + '/USDT'
-    # Obtenir le prix actuelle du coin
+    # Get the current price of the coin
     lastPrice = float(bitget.convert_price_to_precision(
         symbol, bitget.get_bid_ask_price(symbol)['ask']))
     print(f"Coin:", coin)
     print(f"Last Price:", lastPrice)
-    # Obtenir le solde actuelle du coin
+    # Get the current balance of the coin
     coinBalance = bitget.get_balance_of_one_coin(coin)
     print(f"Coin Balance:", coinBalance)
-    # Calculer le solde en USD par coin en multipliant le solde de la coin par le dernier prix
-    balanceInUsdPerCoin = coinBalance*lastPrice
-    print(f"Balance In Usd Per Coin:", balanceInUsdPerCoin)
-    # Ajouter le solde en USD par coin au dictionnaire
+    # Calculate the balance in USD per coin by multiplying the coin balance by the last price
+    balanceInUsdPerCoin = coinBalance * lastPrice
+    print(f"Balance In USD Per Coin:", balanceInUsdPerCoin)
+    # Add the balance in USD per coin to the dictionary
     balanceInUsdPerCoin_dict[coin] = balanceInUsdPerCoin
 
-print(f"Balance In Usd Per Coin dict:", balanceInUsdPerCoin_dict)
-# Calculer le solde total en USD en ajoutant le solde en USD de chaque coin et le solde en USD de base (usdBalance)
+print(f"Balance In USD Per Coin dict:", balanceInUsdPerCoin_dict)
+# Calculate the total balance in USD by adding the USD balance of each coin and the base USD balance (usdBalance)
 totalBalanceInUsd = sum(balanceInUsdPerCoin_dict.values()) + usdBalance
-print(f"Total Balance In Usd:", totalBalanceInUsd)
+print(f"Total Balance In USD:", totalBalanceInUsd)
 coinPositionlist = []
-# Parcourir chaque coin dans le dictionnaire balanceInUsdPerCoin_dict
+# Iterate over each coin in the balanceInUsdPerCoin_dict dictionary
 for coin in balanceInUsdPerCoin_dict:
-    # Vérifiez si la valeur du coin est supérieure à 0.10 * totalBalanceInUsd
+    # Check if the coin value is greater than 0.10 * totalBalanceInUsd
     if balanceInUsdPerCoin_dict[coin] > 0.10 * totalBalanceInUsd:
-        # Ajoutez le coin à la liste coinPositionlist
+        # Add the coin to the coinPositionlist
         coinPositionlist.append(coin)
-# Calculer le nombre de positions ouvertes en comptant le nombre d'éléments dans coinPositionlist
+# Calculate the number of open positions by counting the number of elements in coinPositionlist
 openPositions = len(coinPositionlist)
 print(f"Open Positions:", openPositions)
 
-# Ventes
+# Sales
 for coin in coinPositionlist:
-    # Vérifier si la condition de vente est remplie
+    # Check if the sell condition is met
     if sellCondition(dflist[coin].iloc[-2], dflist[coin].iloc[-3]) == True:
-        # Décrémenter le nombre de positions ouvertes
+        # Decrement the number of open positions
         openPositions -= 1
-        # Définir le symbole de la paire de trading
-        symbol = coin+'/USDT'
+        # Set the trading pair symbol
+        symbol = coin + '/USDT'
         time.sleep(1)
-        # Obtenir le prix de vente en tant que précision flottante
+        # Get the sell price as a floating-point precision
         sellPrice = float(bitget.convert_price_to_precision(
             symbol, bitget.get_bid_ask_price(symbol)['ask']))
         coinBalance = bitget.get_balance_of_one_coin(coin)
-        # Effectuer une vente de marché pour la quantité de crypto-monnaie possédée
+        # Perform a market sell for the amount of cryptocurrency held
         sell = bitget.place_market_order(symbol, 'sell', coinBalance)
-        # Afficher un message indiquant que la vente a été effectuée
-        print(f"Vente")
-        # Ajouter un message à la liste des messages avec les détails de la vente
+        # Display a message indicating that the sale has been executed
+        print(f"Sell")
+        # Add a message to the message list with the sale details
         message_list.append(MESSAGE_TEMPLATE['message_sell'].format(
             subAccountName, str(coin), str(sellPrice)))
     else:
-        # Si la condition de vente n'est pas remplie, afficher un message pour patienter
-        print(f"Patienter")
-        # Ajouter un message à la liste des messages indiquant de conserver la position
+        # If the sell condition is not met, display a message to wait
+        print(f"Wait")
+        # Add a message to the message list indicating to keep the position
         message_list.append(MESSAGE_TEMPLATE['message_keep'].format(
             subAccountName, str(coin)))
-# Achat
+# Buying
 if openPositions < maxOpenPosition:
-    # Vérifier chaque crypto-monnaie dans dflist
+    # Check each cryptocurrency in dflist
     for coin in dflist:
-        # Vérifier si la crypto-monnaie n'est pas déjà présente dans la liste des positions de monnaies
+        # Check if the cryptocurrency is not already in the coinPositionlist
         if coin not in coinPositionlist:
-            # Vérifier si la condition d'achat est remplie et si le nombre de positions ouvertes est inférieur au maximum autorisé
+            # Check if the buy condition is met and if the number of open positions is less than the maximum allowed
             if buyCondition(dflist[coin].iloc[-2], dflist[coin].iloc[-3]) == True and openPositions < maxOpenPosition:
                 time.sleep(1)
-                # Définir le symbole de la paire de trading
-                symbol = coin+'/USDT'
-                # Obtenir le prix d'achat en tant que précision flottante
+                # Set the trading pair symbol
+                symbol = coin + '/USDT'
+                # Get the buy price as a floating-point precision
                 buyPrice = float(bitget.convert_price_to_precision(
                     symbol, bitget.get_bid_ask_price(symbol)['ask']))
-                # Calculer le prix de prise de profit en ajoutant un pourcentage au prix d'achat
+                # Calculate the take profit price by adding a percentage to the buy price
                 tpPrice = float(bitget.convert_price_to_precision(
                     symbol, buyPrice + TpPct * buyPrice))
-                # Calculer la quantité d'achat en USD en fonction du solde en USD et du nombre maximum de positions ouvertes
+                # Calculate the buy quantity in USD based on the USD balance and the maximum number of open positions
                 buyQuantityInUsd = bitget.get_balance_of_one_coin('USDT') * 1 / \
-                    (maxOpenPosition-openPositions)
+                    (maxOpenPosition - openPositions)
 
-                # Réduire la quantité d'achat de 5% si c'est la dernière position à ouvrir
+                # Reduce the buy quantity by 5% if it's the last position to open
                 if openPositions == maxOpenPosition - 1:
                     buyQuantityInUsd = 0.95 * buyQuantityInUsd
 
-                # Convertir la quantité d'achat en précision requise pour la paire de trading
+                # Convert the buy quantity to the required precision for the trading pair
                 buyAmount = float(bitget.convert_amount_to_precision(symbol, float(
                     bitget.convert_amount_to_precision(
                         symbol, buyQuantityInUsd / buyPrice)
                 )))
-                # Afficher les valeurs de certains paramètres pour le débogage
+                # Display the values of certain parameters for debugging
                 print("usdBalance:", usdBalance, "buyQuantityInUsd:", buyQuantityInUsd,
                       "buyAmount:", buyAmount, "buyPrice:", buyPrice, "openPositions:", openPositions)
                 time.sleep(2)
-                # Placer un ordre d'achat limité pour la quantité et le prix spécifiés, avec réduction désactivée
+                # Place a limit buy order for the specified quantity and price, with reduce disabled
                 buy = bitget.place_limit_order(
                     symbol, 'buy', buyAmount, buyPrice, reduce=False)
-                # Ajouter un message à la liste des messages avec les détails de l'achat
+                # Add a message to the message list with the details of the purchase
                 message_list.append(MESSAGE_TEMPLATE['message_buy'].format(
                     subAccountName, str(buyAmount), str(coin), str(buyPrice)))
-                # Afficher un message indiquant que l'achat a été effectué
-                print(f"Achat")
-                # Incrémenter le nombre de positions ouvertes
+                # Display a message indicating that the purchase has been made
+                print(f"Buy")
+                # Increment the number of open positions
                 openPositions += 1
 
 message_list.append(MESSAGE_TEMPLATE['message_wallet'].format(
     subAccountName, str(usdBalance)))
 
-# Crée un objet Intents avec les intentions par défaut
+# Create an Intents object with the default intents
 intents = discord.Intents.default()
-# Optionnel : désactive l'intention de voir lorsque quelqu'un tape un message
+# Optional: disable the typing intent
 intents.typing = False
-# Optionnel : désactive l'intention de voir les présences des utilisateurs
+# Optional: disable the presence intent
 intents.presences = False
 TOKEN = secret["discord_exemple"]["token"]
 client = discord.Client(intents=intents)
@@ -250,10 +250,11 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
-    # join prend une list et à chaque élément de la list ajoute "\n" ou autre
+    # Join the message list with "\n" separator
     msg = "\n".join(message_list)
     id = int(secret["discord_exemple"]["channel"])
     channel = client.get_channel(id)
     await channel.send(msg)
     await client.close()
+
 client.run(TOKEN)
