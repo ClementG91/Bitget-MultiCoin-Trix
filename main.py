@@ -163,7 +163,7 @@ for coin in balanceInUsdPerCoin_dict:
 openPositions = len(coinPositionlist)
 print(f"Open Positions:", openPositions)
 
-# Sales
+# Sells
 for coin in coinPositionlist:
     # Check if the sell condition is met
     if sellCondition(dflist[coin].iloc[-2], dflist[coin].iloc[-3]) == True:
