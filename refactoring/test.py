@@ -96,7 +96,7 @@ def calculate_balances(bitget, dflist):
     balance_in_usd_per_coin = {}
 
     for coin in dflist:
-        symbol = coin
+        symbol = coin + '/USDT'
         last_price = float(bitget.convert_price_to_precision(
             symbol, bitget.get_bid_ask_price(symbol)['ask']))
         coin_balance = bitget.get_balance_of_one_coin(coin)
@@ -120,7 +120,6 @@ def execute_sales(bitget, coin_position_list, dflist, message_list, open_positio
         if sell_condition(dflist[coin].iloc[-2], dflist[coin].iloc[-3]):
             open_positions -= 1
             symbol = coin + '/USDT'
-            time.sleep(1)
             sell_price = float(bitget.convert_price_to_precision(
                 symbol, bitget.get_bid_ask_price(symbol)['ask']))
             coin_balance = bitget.get_balance_of_one_coin(coin)
@@ -147,7 +146,6 @@ def execute_buys(bitget, dflist, message_list, open_positions, coin_position_lis
         for coin in dflist:
             if coin not in coin_position_list:
                 if buy_condition(dflist[coin].iloc[-2], dflist[coin].iloc[-3]) and open_positions < maxOpenPosition:
-                    time.sleep(1)
                     symbol = coin
                     buy_price = float(bitget.convert_price_to_precision(
                         symbol, bitget.get_bid_ask_price(symbol)['ask']))
@@ -164,7 +162,6 @@ def execute_buys(bitget, dflist, message_list, open_positions, coin_position_lis
                             symbol, buy_quantity_in_usd / buy_price))
                     ))
 
-                    time.sleep(2)
                     buy = bitget.place_limit_order(
                         symbol, 'buy', buy_amount, buy_price, reduce=False)
                     message_list.append(
@@ -194,6 +191,7 @@ def send_messages_to_discord(client, secret, message_list):
 
 
 def main():
+    print(get_time_now())
     # Initialize bitget API client
     secret = load_secret("secret.json")
     bitget = configure_bitget("bitget_exemple", secret, production=True)
@@ -205,7 +203,18 @@ def main():
     client = discord.Client(intents=intents)
 
     # Define your list of coins
-    pairlist = ["BTC/USDT", "ETH/USDT"]
+    pairlist = [
+        "BTC/USDT:USDT",
+        "ETH/USDT:USDT",
+        "BNB/USDT:USDT",
+        "XRP/USDT:USDT",
+        "SOL/USDT:USDT",
+        "SHIB/USDT:USDT",
+        "CHZ/USDT:USDT",
+        "DOGE/USDT:USDT",
+        "MATIC/USDT:USDT",
+        "AVAX/USDT:USDT",
+    ]
 
     # Load historical data
     message_list = []
@@ -235,6 +244,7 @@ def main():
 
     # Send messages to Discord
     send_messages_to_discord(client, secret, message_list)
+    print(get_time_now())
 
 
 if __name__ == "__main__":
