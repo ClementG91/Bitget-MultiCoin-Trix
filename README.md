@@ -38,5 +38,5 @@ pip install -r requirments.txt
 
 ```
 crontab -e
-0 * * * * python3 /past/to/main.py >> /past/to/logs/main.log 2>&1
+0 * * * * python3 /path/to/main.py >> /path/to/logs/main.log 2>&1
 ```
